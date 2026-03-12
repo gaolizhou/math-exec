@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数学练习题生成器</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-dark: #4f46e5;
+  --success: #10b981;
+  --success-light: #34d399;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.08);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background decoration */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  right: -20%;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99,102,241,0.08), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -30%;
+  left: -10%;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16,185,129,0.06), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+}
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header h1 .icon {
+  font-size: 1.8rem;
+}
+.header p {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.header-badge {
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Main layout */
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Card */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+.card:hover {
+  box-shadow: var(--shadow-lg);
+}
+.card-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+.card-header .card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+.card-header .card-icon.purple { background: rgba(99,102,241,0.1); color: var(--primary); }
+.card-header .card-icon.green { background: rgba(16,185,129,0.1); color: var(--success); }
+.card-header .card-icon.orange { background: rgba(245,158,11,0.1); color: var(--warning); }
+.card-body { padding: 20px; }
+
+/* Sidebar */
+.sidebar { position: sticky; top: 90px; }
+
+/* Form controls */
+.form-group {
+  margin-bottom: 18px;
+}
+.form-group:last-child { margin-bottom: 0; }
+.form-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: var(--transition);
+  background: #fafbfc;
+  color: var(--text);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
+}
+.form-input::placeholder { color: #94a3b8; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Slider */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.slider-container input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--val, 50%), #e2e8f0 var(--val, 50%), #e2e8f0 100%);
+  outline: none;
+}
+.slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s ease;
+}
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.slider-value {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.3s;
+}
+.btn:hover::after { background: rgba(255,255,255,0.1); }
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+}
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--success), #059669);
+  color: white;
+  box-shadow: 0 4px 14px rgba(16,185,129,0.35);
+}
+.btn-success:hover {
+  box-shadow: 0 6px 20px rgba(16,185,129,0.45);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: white;
+  color: var(--primary);
+  border: 2px solid var(--primary-light);
+}
+.btn-outline:hover {
+  background: rgba(99,102,241,0.05);
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Stats bar */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-item {
+  background: linear-gradient(135deg, #fafbfc, #f1f5f9);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  text-align: center;
+  transition: var(--transition);
+}
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Preview area */
+.preview-container {
+  min-height: 400px;
+}
+
+/* Page navigation */
+.page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-btn:hover { border-color: var(--primary-light); color: var(--primary); }
+.page-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Problems grid */
+.problems-page {
+  display: none;
+}
+.problems-page.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.problems-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.problem-card {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fafbfc, #f8fafc);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  gap: 12px;
+  cursor: default;
+}
+.problem-card:hover {
+  border-color: var(--primary-light);
+  background: linear-gradient(135deg, rgba(99,102,241,0.03), rgba(99,102,241,0.06));
+  transform: translateX(3px);
+}
+.problem-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.problem-card[data-type="mul"] .problem-num {
+  background: var(--warning);
+}
+.problem-text {
+  font-size: 1.05rem;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+.empty-state .icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+.empty-state h3 {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.empty-state p {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+/* Tag / Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.badge-purple { background: rgba(99,102,241,0.1); color: var(--primary); }
+.badge-orange { background: rgba(245,158,11,0.1); color: var(--warning); }
+.badge-green { background: rgba(16,185,129,0.1); color: var(--success); }
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+.loading .spinner { display: inline-block; }
+.loading .btn-text { display: none; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  background: white;
+  box-shadow: var(--shadow-xl);
+  border-left: 4px solid var(--success);
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.5s forwards;
+  max-width: 350px;
+}
+.toast.error { border-left-color: var(--danger); }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+  }
+  .stats-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .problems-grid {
+    grid-template-columns: 1fr;
+  }
+  .header-badge { display: none; }
+  .stats-bar { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <div>
+      <h1><span class="icon">📐</span> 数学练习题生成器</h1>
+      <p>小数四则运算练习题 · 一键生成 · 在线预览 · PDF下载</p>
+    </div>
+    <div class="header-badge">✨ 智能出题</div>
+  </div>
+</header>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Settings Card -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="card-header">
+        <div class="card-icon purple">⚙️</div>
+        生成设置
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">📄 页数</label>
+          <div class="slider-container">
+            <input type="range" id="pagesSlider" min="1" max="20" value="5" oninput="updateSlider(this)">
+            <span class="slider-value" id="pagesValue">5</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">➕ 加减法题数（每页）</label>
+          <div class="slider-container">
+            <input type="range" id="addSubSlider" min="0" max="20" value="16" oninput="updateProblemSliders(this, 'addSub')">
+            <span class="slider-value" id="addSubValue">16</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">✖️ 乘法题数（每页）</label>
+          <div class="slider-container">
+            <input type="range" id="mulSlider" min="0" max="20" value="4" oninput="updateProblemSliders(this, 'mul')">
+            <span class="slider-value" id="mulValue">4</span>
+          </div>
+        </div>
+
+        <div class="form-hint" style="margin-bottom: 16px;">
+          ⚠️ 每页总题数上限为 20 题
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-row" style="margin-bottom: 16px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">起始页码</label>
+            <input type="number" class="form-input" id="startPage" value="1" min="1">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">文件名</label>
+            <input type="text" class="form-input" id="filename" value="math_exercises.pdf" placeholder="文件名">
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary btn-block" id="previewBtn" onclick="generatePreview()">
+            <span class="spinner"></span>
+            <span class="btn-text">👁️ 生成预览</span>
+          </button>
+          <button class="btn btn-success btn-block" id="downloadBtn" onclick="downloadPDF()">
+            <span class="spinner"></span>
+            <span class="btn-text">📥 下载 PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Tips Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon green">💡</div>
+        题型说明
+      </div>
+      <div class="card-body">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: start; gap: 10px;">
+            <span class="badge badge-purple">加减法</span>
+            <span style="font-size: 0.82rem; color: var(--text-secondary);">3位有效数字小数运算<br>如 3.57 + 42.1 =</span>
+          </div>
+          <div style="display: flex; align-items: start; gap: 10px;">
+            <span class="badge badge-orange">乘法</span>
+            <span style="font-size: 0.82rem; color: var(--text-secondary);">2位有效数字小数运算<br>如 3.5 × 2.1 =</span>
+          </div>
+          <div style="display: flex; align-items: start; gap: 10px;">
+            <span class="badge badge-green">减法</span>
+            <span style="font-size: 0.82rem; color: var(--text-secondary);">保证大数减小数<br>结果始终为非负数</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content Area -->
+  <div class="content">
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-number" id="statPages">0</div>
+        <div class="stat-label">总页数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="statProblems">0</div>
+        <div class="stat-label">总题数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="statTypes">—</div>
+        <div class="stat-label">题型比例</div>
+      </div>
+    </div>
+
+    <!-- Preview Card -->
+    <div class="card">
+      <div class="card-header" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="card-icon orange">📋</div>
+          题目预览
+        </div>
+        <button class="btn btn-outline btn-sm" id="refreshBtn" onclick="refreshCurrentPage()" style="display:none;">
+          🔄 换一批
+        </button>
+      </div>
+      <div class="card-body preview-container" id="previewArea">
+        <div class="empty-state">
+          <div class="icon">📝</div>
+          <h3>还没有题目</h3>
+          <p>点击左侧「生成预览」按钮来创建练习题</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================
+// State
+// ========================
+let pagesData = [];
+let currentPage = 0;
+
+// ========================
+// Slider Logic
+// ========================
+function updateSlider(el) {
+  const val = ((el.value - el.min) / (el.max - el.min)) * 100;
+  el.style.setProperty('--val', val + '%');
+  const valueEl = el.id.replace('Slider', 'Value');
+  document.getElementById(valueEl).textContent = el.value;
+}
+
+function updateProblemSliders(el, type) {
+  const addSubSlider = document.getElementById('addSubSlider');
+  const mulSlider = document.getElementById('mulSlider');
+  const total = parseInt(addSubSlider.value) + parseInt(mulSlider.value);
+
+  if (total > 20) {
+    if (type === 'addSub') {
+      mulSlider.value = 20 - parseInt(addSubSlider.value);
+      updateSlider(mulSlider);
+    } else {
+      addSubSlider.value = 20 - parseInt(mulSlider.value);
+      updateSlider(addSubSlider);
+    }
+  }
+  updateSlider(el);
+}
+
+function initSliders() {
+  document.querySelectorAll('input[type="range"]').forEach(el => {
+    updateSlider(el);
+  });
+}
+
+// ========================
+// Toast Notification
+// ========================
+function showToast(message, isError = false) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (isError ? ' error' : '');
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ========================
+// Button Loading
+// ========================
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (loading) {
+    btn.classList.add('loading');
+    btn.disabled = true;
+  } else {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+// ========================
+// API Calls
+// ========================
+function getSettings() {
+  return {
+    pages: parseInt(document.getElementById('pagesSlider').value),
+    add_sub_count: parseInt(document.getElementById('addSubSlider').value),
+    mul_count: parseInt(document.getElementById('mulSlider').value),
+    start_page: parseInt(document.getElementById('startPage').value) || 1,
+    filename: document.getElementById('filename').value || 'math_exercises.pdf'
+  };
+}
+
+async function generatePreview() {
+  const settings = getSettings();
+  setLoading('previewBtn', true);
+
+  try {
+    const resp = await fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    const data = await resp.json();
+    pagesData = data.pages;
+    currentPage = 0;
+    renderPreview();
+    updateStats(settings);
+    showToast(`✅ 成功生成 ${pagesData.length} 页练习题！`);
+  } catch (e) {
+    showToast('❌ 生成失败，请重试', true);
+    console.error(e);
+  } finally {
+    setLoading('previewBtn', false);
+  }
+}
+
+async function downloadPDF() {
+  const settings = getSettings();
+  setLoading('downloadBtn', true);
+
+  try {
+    const resp = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+
+    if (!resp.ok) throw new Error('Download failed');
+
+    const blob = await resp.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = settings.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    showToast(`📥 PDF 已下载：${settings.filename}`);
+  } catch (e) {
+    showToast('❌ 下载失败，请重试', true);
+    console.error(e);
+  } finally {
+    setLoading('downloadBtn', false);
+  }
+}
+
+async function refreshCurrentPage() {
+  const settings = getSettings();
+  try {
+    const resp = await fetch('/api/regenerate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    const data = await resp.json();
+    if (pagesData[currentPage]) {
+      pagesData[currentPage].problems = data.problems;
+      renderPreview();
+      showToast('🔄 当前页已刷新');
+    }
+  } catch (e) {
+    showToast('❌ 刷新失败', true);
+  }
+}
+
+// ========================
+// Render Preview
+// ========================
+function renderPreview() {
+  const area = document.getElementById('previewArea');
+  const refreshBtn = document.getElementById('refreshBtn');
+
+  if (!pagesData.length) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📝</div>
+        <h3>还没有题目</h3>
+        <p>点击左侧「生成预览」按钮来创建练习题</p>
+      </div>`;
+    refreshBtn.style.display = 'none';
+    return;
+  }
+
+  refreshBtn.style.display = '';
+
+  // Build page nav
+  let navHtml = '<div class="page-nav">';
+  pagesData.forEach((_, i) => {
+    navHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="switchPage(${i})">${i + 1}</button>`;
+  });
+  navHtml += '</div>';
+
+  // Legend
+  let legendHtml = `
+    <div class="legend">
+      <span class="badge badge-purple">加减法</span>
+      <span class="badge badge-orange">乘法</span>
+    </div>`;
+
+  // Problems pages
+  let pagesHtml = '';
+  pagesData.forEach((page, pageIdx) => {
+    pagesHtml += `<div class="problems-page ${pageIdx === currentPage ? 'active' : ''}" id="page-${pageIdx}">`;
+    pagesHtml += '<div class="problems-grid">';
+    page.problems.forEach((prob, probIdx) => {
+      const typeClass = prob.type === 'mul' ? 'mul' : 'add_sub';
+      pagesHtml += `
+        <div class="problem-card" data-type="${typeClass}">
+          <div class="problem-num">${probIdx + 1}</div>
+          <div class="problem-text">${escapeHtml(prob.text)}</div>
+        </div>`;
+    });
+    pagesHtml += '</div></div>';
+  });
+
+  area.innerHTML = navHtml + legendHtml + pagesHtml;
+}
+
+function switchPage(idx) {
+  currentPage = idx;
+  // Update nav buttons
+  document.querySelectorAll('.page-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === idx);
+  });
+  // Show/hide pages
+  document.querySelectorAll('.problems-page').forEach((page, i) => {
+    page.classList.toggle('active', i === idx);
+  });
+}
+
+function updateStats(settings) {
+  const totalProblems = pagesData.length * (settings.add_sub_count + settings.mul_count);
+  document.getElementById('statPages').textContent = pagesData.length;
+  document.getElementById('statProblems').textContent = totalProblems;
+  document.getElementById('statTypes').textContent = `${settings.add_sub_count}:${settings.mul_count}`;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ========================
+// Init
+// ========================
+window.addEventListener('DOMContentLoaded', () => {
+  initSliders();
+});
+</script>
+</body>
+</html>
