@@ -1,0 +1,11 @@
+.git
+.gitignore
+.codebuddy/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.pdf
+agency-agents-src/
+.DS_Store
