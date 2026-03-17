@@ -52,6 +52,8 @@ DEFAULT_CONFIG = {
         "integer_digits_max": 2,
         "decimal_digits_min": 1,
         "decimal_digits_max": 2,
+        "operand_min": None,
+        "operand_max": None,
         "result_min": Decimal("0"),
         "result_max": Decimal("200"),
         "non_negative_subtraction": True,
@@ -231,13 +233,20 @@ def parse_bool(value, default=False):
     return bool(value)
 
 
-def parse_decimal_value(value, default):
+def parse_decimal_value(value, default, field_label="数值"):
     if value in (None, ""):
-        value = default
+        return default
     try:
         return Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError) as exc:
-        raise ConfigError("结果范围必须是合法数字。") from exc
+        raise ConfigError(f"{field_label}必须是合法数字。") from exc
+
+
+def pick_first_value(*candidates):
+    for candidate in candidates:
+        if candidate is not None:
+            return candidate
+    return None
 
 
 def parse_rewrite_mode(value, default="any"):
@@ -346,6 +355,9 @@ def mode_text(mode, noun):
 
 def normalize_config(payload):
     data = payload or {}
+    rules_data = data.get("rules") or {}
+    counts_data = data.get("counts") or {}
+    layout_data = data.get("layout") or {}
     config = deepcopy(DEFAULT_CONFIG)
 
     config["worksheet_title"] = sanitize_title(data.get("worksheet_title"))
@@ -355,18 +367,53 @@ def normalize_config(payload):
     config["shuffle_problems"] = parse_bool(data.get("shuffle_problems"), True)
 
     counts = config["counts"]
-    counts["add"] = parse_int(data.get("add_count"), counts["add"], 0, MAX_PROBLEMS_PER_OPERATION)
-    counts["sub"] = parse_int(data.get("sub_count"), counts["sub"], 0, MAX_PROBLEMS_PER_OPERATION)
-    counts["mul"] = parse_int(data.get("mul_count"), counts["mul"], 0, MAX_PROBLEMS_PER_OPERATION)
+    counts["add"] = parse_int(
+        pick_first_value(data.get("add_count"), counts_data.get("add")),
+        counts["add"],
+        0,
+        MAX_PROBLEMS_PER_OPERATION,
+    )
+    counts["sub"] = parse_int(
+        pick_first_value(data.get("sub_count"), counts_data.get("sub")),
+        counts["sub"],
+        0,
+        MAX_PROBLEMS_PER_OPERATION,
+    )
+    counts["mul"] = parse_int(
+        pick_first_value(data.get("mul_count"), counts_data.get("mul")),
+        counts["mul"],
+        0,
+        MAX_PROBLEMS_PER_OPERATION,
+    )
 
     if sum(counts.values()) <= 0:
         raise ConfigError("至少需要生成 1 道题。")
 
     rules = config["rules"]
-    rules["integer_digits_min"] = parse_int(data.get("integer_digits_min"), rules["integer_digits_min"], 0, 4)
-    rules["integer_digits_max"] = parse_int(data.get("integer_digits_max"), rules["integer_digits_max"], 0, 4)
-    rules["decimal_digits_min"] = parse_int(data.get("decimal_digits_min"), rules["decimal_digits_min"], 0, 3)
-    rules["decimal_digits_max"] = parse_int(data.get("decimal_digits_max"), rules["decimal_digits_max"], 0, 3)
+    rules["integer_digits_min"] = parse_int(
+        pick_first_value(data.get("integer_digits_min"), rules_data.get("integer_digits_min")),
+        rules["integer_digits_min"],
+        0,
+        4,
+    )
+    rules["integer_digits_max"] = parse_int(
+        pick_first_value(data.get("integer_digits_max"), rules_data.get("integer_digits_max")),
+        rules["integer_digits_max"],
+        0,
+        4,
+    )
+    rules["decimal_digits_min"] = parse_int(
+        pick_first_value(data.get("decimal_digits_min"), rules_data.get("decimal_digits_min")),
+        rules["decimal_digits_min"],
+        0,
+        3,
+    )
+    rules["decimal_digits_max"] = parse_int(
+        pick_first_value(data.get("decimal_digits_max"), rules_data.get("decimal_digits_max")),
+        rules["decimal_digits_max"],
+        0,
+        3,
+    )
 
     if rules["integer_digits_min"] > rules["integer_digits_max"]:
         rules["integer_digits_min"], rules["integer_digits_max"] = (
@@ -382,25 +429,68 @@ def normalize_config(payload):
     if rules["integer_digits_max"] == 0 and rules["decimal_digits_max"] == 0:
         raise ConfigError("整数位数和小数位数不能同时为 0。")
 
-    rules["result_min"] = parse_decimal_value(data.get("result_min"), DEFAULT_CONFIG["rules"]["result_min"])
-    rules["result_max"] = parse_decimal_value(data.get("result_max"), DEFAULT_CONFIG["rules"]["result_max"])
+    rules["operand_min"] = parse_decimal_value(
+        pick_first_value(data.get("operand_min"), rules_data.get("operand_min")),
+        None,
+        "参与数值范围",
+    )
+    rules["operand_max"] = parse_decimal_value(
+        pick_first_value(data.get("operand_max"), rules_data.get("operand_max")),
+        None,
+        "参与数值范围",
+    )
+    if (
+        rules["operand_min"] is not None
+        and rules["operand_max"] is not None
+        and rules["operand_min"] > rules["operand_max"]
+    ):
+        rules["operand_min"], rules["operand_max"] = rules["operand_max"], rules["operand_min"]
+
+    rules["result_min"] = parse_decimal_value(
+        pick_first_value(data.get("result_min"), rules_data.get("result_min")),
+        DEFAULT_CONFIG["rules"]["result_min"],
+        "结果范围",
+    )
+    rules["result_max"] = parse_decimal_value(
+        pick_first_value(data.get("result_max"), rules_data.get("result_max")),
+        DEFAULT_CONFIG["rules"]["result_max"],
+        "结果范围",
+    )
     if rules["result_min"] > rules["result_max"]:
         rules["result_min"], rules["result_max"] = rules["result_max"], rules["result_min"]
 
-    rules["non_negative_subtraction"] = parse_bool(data.get("non_negative_subtraction"), True)
+    rules["non_negative_subtraction"] = parse_bool(
+        pick_first_value(data.get("non_negative_subtraction"), rules_data.get("non_negative_subtraction")),
+        True,
+    )
     rules["addition_carry_mode"] = parse_rewrite_mode(
-        data.get("addition_carry_mode"),
+        pick_first_value(data.get("addition_carry_mode"), rules_data.get("addition_carry_mode")),
         rules["addition_carry_mode"],
     )
     rules["subtraction_borrow_mode"] = parse_rewrite_mode(
-        data.get("subtraction_borrow_mode"),
+        pick_first_value(data.get("subtraction_borrow_mode"), rules_data.get("subtraction_borrow_mode")),
         rules["subtraction_borrow_mode"],
     )
 
     layout = config["layout"]
-    layout["columns"] = parse_int(data.get("columns"), layout["columns"], 1, 3)
-    layout["line_height_mm"] = parse_int(data.get("line_height_mm"), layout["line_height_mm"], 12, 36)
-    layout["font_size"] = parse_int(data.get("font_size"), layout["font_size"], 11, 20)
+    layout["columns"] = parse_int(
+        pick_first_value(data.get("columns"), layout_data.get("columns")),
+        layout["columns"],
+        1,
+        3,
+    )
+    layout["line_height_mm"] = parse_int(
+        pick_first_value(data.get("line_height_mm"), layout_data.get("line_height_mm")),
+        layout["line_height_mm"],
+        12,
+        36,
+    )
+    layout["font_size"] = parse_int(
+        pick_first_value(data.get("font_size"), layout_data.get("font_size")),
+        layout["font_size"],
+        11,
+        20,
+    )
 
     metrics = build_layout_metrics(layout)
     total_per_page = sum(counts.values())
@@ -423,34 +513,63 @@ def format_decimal(value: Decimal, decimal_digits: int) -> str:
     return f"{normalized:.{decimal_digits}f}"
 
 
+def format_rule_range(min_value, max_value):
+    if min_value is None and max_value is None:
+        return "不限"
+    if min_value is None:
+        return f"≤ {decimal_to_plain_str(max_value)}"
+    if max_value is None:
+        return f"≥ {decimal_to_plain_str(min_value)}"
+    return f"{decimal_to_plain_str(min_value)} ~ {decimal_to_plain_str(max_value)}"
+
+
+def matches_operand_range(value: Decimal, rules) -> bool:
+    operand_min = rules["operand_min"]
+    operand_max = rules["operand_max"]
+    if operand_min is not None and value < operand_min:
+        return False
+    if operand_max is not None and value > operand_max:
+        return False
+    return True
+
+
 def build_number(rules):
-    integer_digits = random.randint(rules["integer_digits_min"], rules["integer_digits_max"])
-    decimal_digits = random.randint(rules["decimal_digits_min"], rules["decimal_digits_max"])
+    for _ in range(MAX_GENERATION_ATTEMPTS):
+        integer_digits = random.randint(rules["integer_digits_min"], rules["integer_digits_max"])
+        decimal_digits = random.randint(rules["decimal_digits_min"], rules["decimal_digits_max"])
 
-    if integer_digits == 0 and decimal_digits == 0:
-        decimal_digits = 1
+        if integer_digits == 0 and decimal_digits == 0:
+            decimal_digits = 1
 
-    if integer_digits > 0:
-        integer_part = random.randint(10 ** (integer_digits - 1), 10 ** integer_digits - 1)
-    else:
-        integer_part = 0
+        if integer_digits > 0:
+            integer_part = random.randint(10 ** (integer_digits - 1), 10 ** integer_digits - 1)
+        else:
+            integer_part = 0
 
-    if decimal_digits > 0:
-        lower_bound = 1 if integer_digits == 0 else 0
-        fractional_part = random.randint(lower_bound, 10 ** decimal_digits - 1)
-    else:
-        fractional_part = 0
+        if decimal_digits > 0:
+            lower_bound = 1 if integer_digits == 0 else 0
+            fractional_part = random.randint(lower_bound, 10 ** decimal_digits - 1)
+        else:
+            fractional_part = 0
 
-    value = Decimal(integer_part)
-    if decimal_digits > 0:
-        value += Decimal(fractional_part) * quantizer(decimal_digits)
+        value = Decimal(integer_part)
+        if decimal_digits > 0:
+            value += Decimal(fractional_part) * quantizer(decimal_digits)
 
-    return {
-        "value": value,
-        "text": format_decimal(value, decimal_digits),
-        "integer_digits": integer_digits,
-        "decimal_digits": decimal_digits,
-    }
+        if not matches_operand_range(value, rules):
+            continue
+
+        return {
+            "value": value,
+            "text": format_decimal(value, decimal_digits),
+            "integer_digits": integer_digits,
+            "decimal_digits": decimal_digits,
+        }
+
+    raise ConfigError(
+        "当前参与数值范围与位数条件冲突，无法生成符合要求的数字"
+        f"（参与数值范围：{format_rule_range(rules['operand_min'], rules['operand_max'])}）。"
+    )
 
 
 def scaled_integer(number_meta, scale):
@@ -554,9 +673,11 @@ def build_problem(operation, rules):
             "operation_label": metadata["label"],
         }
 
-    range_text = f"{decimal_to_plain_str(rules['result_min'])} ~ {decimal_to_plain_str(rules['result_max'])}"
+    result_range_text = format_rule_range(rules["result_min"], rules["result_max"])
+    operand_range_text = format_rule_range(rules["operand_min"], rules["operand_max"])
     raise ConfigError(
-        f"当前条件太严格，无法稳定生成“{metadata['label']}”题目。请放宽位数范围、结果范围，或调整进位 / 退位规则（当前结果范围：{range_text}）。"
+        f"当前条件太严格，无法稳定生成“{metadata['label']}”题目。请放宽位数范围、参与数值范围或结果范围，或调整进位 / 退位规则"
+        f"（参与数值范围：{operand_range_text}；结果范围：{result_range_text}）。"
     )
 
 
@@ -595,6 +716,8 @@ def serialize_config(config, metrics=None):
             "integer_digits_max": config["rules"]["integer_digits_max"],
             "decimal_digits_min": config["rules"]["decimal_digits_min"],
             "decimal_digits_max": config["rules"]["decimal_digits_max"],
+            "operand_min": decimal_to_plain_str(config["rules"]["operand_min"]) if config["rules"]["operand_min"] is not None else "",
+            "operand_max": decimal_to_plain_str(config["rules"]["operand_max"]) if config["rules"]["operand_max"] is not None else "",
             "result_min": decimal_to_plain_str(config["rules"]["result_min"]),
             "result_max": decimal_to_plain_str(config["rules"]["result_max"]),
             "non_negative_subtraction": config["rules"]["non_negative_subtraction"],
@@ -644,10 +767,8 @@ def build_summary(config, metrics):
         "operation_summary": operation_summary,
         "integer_digits_text": f"{integer_min} ~ {integer_max} 位",
         "decimal_digits_text": f"{decimal_min} ~ {decimal_max} 位",
-        "result_range_text": (
-            f"{decimal_to_plain_str(config['rules']['result_min'])} ~ "
-            f"{decimal_to_plain_str(config['rules']['result_max'])}"
-        ),
+        "operand_range_text": format_rule_range(config["rules"]["operand_min"], config["rules"]["operand_max"]),
+        "result_range_text": format_rule_range(config["rules"]["result_min"], config["rules"]["result_max"]),
         "shuffle_problems": config["shuffle_problems"],
         "non_negative_subtraction": config["rules"]["non_negative_subtraction"],
         "addition_carry_text": mode_text(config["rules"]["addition_carry_mode"], "进位") if add_count else "未启用",
@@ -743,7 +864,7 @@ def draw_info_bar(c, width, height, summary):
     line_one = f"每页 {summary['problems_per_page']} 题  |  {operation_text}"
     line_two = (
         f"整数位 {summary['integer_digits_text']}  |  小数位 {summary['decimal_digits_text']}"
-        f"  |  结果范围 {summary['result_range_text']}"
+        f"  |  参与数值 {summary['operand_range_text']}  |  结果范围 {summary['result_range_text']}"
     )
     set_text_font(c, line_one, 7.2)
     c.drawString(35, info_y + 15, line_one)

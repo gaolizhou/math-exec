@@ -23,6 +23,7 @@
   --radius: 16px;
   --radius-sm: 10px;
   --transition: all 0.25s ease;
+  --app-header-height: 92px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,6 +33,8 @@ body {
   background: radial-gradient(circle at top right, rgba(99,102,241,0.08), transparent 30%), var(--bg);
   color: var(--text);
   min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .header {
@@ -81,21 +84,64 @@ body {
 }
 
 .main {
-  max-width: 1320px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 24px;
+  min-height: calc(100vh - var(--app-header-height));
+  padding: 20px 24px 24px;
   display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: 24px;
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  gap: 20px;
   align-items: start;
 }
 
-.sidebar {
+.sidebar-left {
+  grid-column: 1;
   position: sticky;
-  top: 98px;
+  top: calc(var(--app-header-height) + 18px);
+  align-self: start;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  max-height: calc(100vh - var(--app-header-height) - 36px);
+  overflow: auto;
+  padding-right: 4px;
+  padding-bottom: 6px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.sidebar-right {
+  grid-column: 3;
+  position: sticky;
+  top: calc(var(--app-header-height) + 18px);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - var(--app-header-height) - 36px);
+  overflow: auto;
+  padding-left: 4px;
+  padding-right: 2px;
+  padding-bottom: 6px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.sidebar {
+  grid-column: 3;
+  position: sticky;
+  top: calc(var(--app-header-height) + 18px);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - var(--app-header-height) - 36px);
+  overflow: auto;
+  padding-left: 4px;
+  padding-right: 2px;
+  padding-bottom: 6px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .card {
@@ -257,7 +303,24 @@ body {
 }
 
 .actions {
-  margin-top: 18px;
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  margin-top: 20px;
+  padding-top: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.94) 22%, #ffffff 100%);
+  border-top: 1px solid rgba(226,232,240,0.92);
+}
+
+.actions-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
 }
 
 .preset-actions {
@@ -338,15 +401,22 @@ body {
 }
 
 .content {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
 }
 
 .stats-bar {
+  position: sticky;
+  top: calc(var(--app-header-height) + 18px);
+  z-index: 5;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+  padding-bottom: 4px;
+  background: linear-gradient(180deg, rgba(243,245,251,0.98) 0%, rgba(243,245,251,0.95) 78%, rgba(243,245,251,0) 100%);
 }
 
 .stat-item {
@@ -592,8 +662,31 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .sidebar-left,
+  .sidebar-right,
   .sidebar {
+    grid-column: auto;
     position: static;
+    max-height: none;
+    overflow: visible;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+  }
+
+  .content {
+    grid-column: auto;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .actions,
+  .stats-bar {
+    position: static;
+    padding-top: 0;
+    padding-bottom: 0;
+    background: none;
+    border-top: none;
   }
 }
 
@@ -630,19 +723,20 @@ body {
   <div class="header-inner">
     <div class="header-title">
       <h1>📐 数学练习题生成器</h1>
-      <p>支持位数范围、结果范围、进位 / 退位规则、模板保存和 PDF 导出的可配置出题工具</p>
+      <p>支持位数范围、参与数值范围、结果范围、进位 / 退位规则、模板保存和 PDF 导出的可配置出题工具</p>
     </div>
-    <div class="header-badge">V2 规则 + 模板</div>
+    <div class="header-badge">V3 数值范围 + 模板</div>
   </div>
 </header>
 
 <div class="toast-container" id="toastContainer"></div>
 
 <div class="main">
-  <aside class="sidebar">
+  <!-- 左侧：操作面板 -->
+  <aside class="sidebar-left">
     <div class="card">
       <div class="card-header">
-        <div class="card-title"><span class="card-icon">⚙️</span> 出题配置</div>
+        <div class="card-title"><span class="card-icon">📁</span> 模板与操作</div>
       </div>
       <div class="card-body">
         <div class="form-group">
@@ -650,21 +744,85 @@ body {
           <select class="form-select" id="presetSelect">
             <option value="">请选择模板</option>
           </select>
-          <div class="form-hint">可以先选系统模板，也可以保存你自己的常用模板。</div>
+          <div class="form-hint">可选系统模板或自己保存的常用模板。</div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="savePresetName">保存当前配置为模板</label>
-          <div class="preset-actions">
-            <input class="form-input" id="savePresetName" type="text" maxlength="30" placeholder="例如：无进位加法专项">
+          <label class="form-label" for="savePresetName">保存当前配置</label>
+          <input class="form-input" id="savePresetName" type="text" maxlength="30" placeholder="模板名称">
+          <div class="preset-actions" style="margin-top:8px;">
             <button class="btn btn-outline btn-sm" id="savePresetBtn" onclick="saveCurrentPreset()">💾 保存</button>
             <button class="btn btn-danger btn-sm" id="deletePresetBtn" onclick="deleteSelectedPreset()" disabled>🗑️ 删除</button>
           </div>
-          <div class="form-hint">只有“已保存模板”可以删除；系统模板不能删除。</div>
         </div>
 
         <div class="divider"></div>
 
+        <div class="actions-stacked">
+          <button class="btn btn-primary btn-block" id="previewBtn" onclick="generatePreview()">
+            <span class="spinner"></span>
+            <span class="btn-text">👁️ 生成预览</span>
+          </button>
+          <button class="btn btn-outline btn-block" id="printBtn" onclick="printWorksheet()">
+            <span class="spinner"></span>
+            <span class="btn-text">🖨️ 打开 PDF 打印</span>
+          </button>
+          <button class="btn btn-success btn-block" id="downloadBtn" onclick="downloadPDF()">
+            <span class="spinner"></span>
+            <span class="btn-text">📥 下载 PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 中间：题目预览 -->
+  <section class="content">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-number" id="statPages">0</div>
+        <div class="stat-label">总页数</div>
+        <div class="stat-subtext" id="statPagesText">尚未生成</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="statPerPage">0</div>
+        <div class="stat-label">每页题数</div>
+        <div class="stat-subtext" id="statPerPageText">请先设置题型数量</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="statCapacity">0</div>
+        <div class="stat-label">版式容量</div>
+        <div class="stat-subtext" id="statCapacityText">当前版式可容纳的上限</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="statRules">—</div>
+        <div class="stat-label">规则摘要</div>
+        <div class="stat-subtext" id="statRulesText">参与数值范围 / 结果范围</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="card-icon">📋</span> 题目预览</div>
+        <button class="btn btn-outline btn-sm" id="refreshBtn" onclick="refreshCurrentPage()" style="display:none;">🔄 换当前页</button>
+      </div>
+      <div class="card-body" id="previewArea">
+        <div class="empty-state">
+          <div class="icon">📝</div>
+          <h3>还没有题目</h3>
+          <p>设置右侧配置后，点击左侧"生成预览"即可看到练习题。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右侧：详细配置 -->
+  <aside class="sidebar-right">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="card-icon">⚙️</span> 详细配置</div>
+      </div>
+      <div class="card-body">
         <div class="section-title">基础信息</div>
         <div class="form-group">
           <label class="form-label" for="worksheetTitle">练习单标题</label>
@@ -701,6 +859,14 @@ body {
           </div>
         </div>
 
+        <div class="checkbox-row">
+          <input id="integerOnlyMode" type="checkbox">
+          <div>
+            <div class="checkbox-title">整数运算（不含小数）</div>
+            <div class="checkbox-desc">开启后小数位固定为 0。</div>
+          </div>
+        </div>
+
         <div class="form-grid">
           <div class="form-group">
             <label class="form-label" for="decimalDigitsMin">小数位最少</label>
@@ -709,6 +875,18 @@ body {
           <div class="form-group">
             <label class="form-label" for="decimalDigitsMax">小数位最多</label>
             <input class="form-input" id="decimalDigitsMax" type="number" min="0" max="3">
+          </div>
+        </div>
+        <div class="form-hint" id="decimalModeHint">可设置小数位范围。</div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="operandMin">参与数值最小</label>
+            <input class="form-input" id="operandMin" type="number" step="0.01" placeholder="不限">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="operandMax">参与数值最大</label>
+            <input class="form-input" id="operandMax" type="number" step="0.01" placeholder="不限">
           </div>
         </div>
 
@@ -725,23 +903,22 @@ body {
 
         <div class="form-grid">
           <div class="form-group">
-            <label class="form-label" for="additionCarryMode">加法进位控制</label>
+            <label class="form-label" for="additionCarryMode">加法进位</label>
             <select class="form-select" id="additionCarryMode">
               <option value="any">不限</option>
-              <option value="with">必须有进位</option>
-              <option value="without">不允许进位</option>
+              <option value="with">必须有</option>
+              <option value="without">不允许</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="subtractionBorrowMode">减法退位控制</label>
+            <label class="form-label" for="subtractionBorrowMode">减法退位</label>
             <select class="form-select" id="subtractionBorrowMode">
               <option value="any">不限</option>
-              <option value="with">必须有退位</option>
-              <option value="without">不允许退位</option>
+              <option value="with">必须有</option>
+              <option value="without">不允许</option>
             </select>
           </div>
         </div>
-        <div class="form-hint">当前版本会把这组位数、结果范围和进退位规则统一应用到对应题型。</div>
 
         <div class="divider"></div>
 
@@ -783,14 +960,12 @@ body {
         <div class="form-group">
           <label class="form-label" for="lineHeightMm">行距（毫米）</label>
           <input class="form-input" id="lineHeightMm" type="number" min="12" max="36">
-          <div class="form-hint">行距越大，越适合竖式演算；可容纳的题目数会随之减少。</div>
         </div>
 
         <div class="checkbox-row">
           <input id="nonNegativeSubtraction" type="checkbox">
           <div>
             <div class="checkbox-title">减法结果不为负</div>
-            <div class="checkbox-desc">开启后，减法会自动调整顺序，确保是大数减小数。</div>
           </div>
         </div>
 
@@ -798,84 +973,11 @@ body {
           <input id="shuffleProblems" type="checkbox">
           <div>
             <div class="checkbox-title">题目随机打乱</div>
-            <div class="checkbox-desc">关闭后，会按“加法 → 减法 → 乘法”的顺序排列。</div>
           </div>
-        </div>
-
-        <div class="actions">
-          <button class="btn btn-primary" id="previewBtn" onclick="generatePreview()">
-            <span class="spinner"></span>
-            <span class="btn-text">👁️ 生成预览</span>
-          </button>
-          <button class="btn btn-success" id="downloadBtn" onclick="downloadPDF()">
-            <span class="spinner"></span>
-            <span class="btn-text">📥 下载 PDF</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title"><span class="card-icon">💡</span> 现在支持的灵活设定</div>
-      </div>
-      <div class="card-body">
-        <div class="mini-chip-list">
-          <span class="mini-chip">整数位范围</span>
-          <span class="mini-chip">小数位范围</span>
-          <span class="mini-chip">结果上下限</span>
-          <span class="mini-chip">加法进位控制</span>
-          <span class="mini-chip">减法退位控制</span>
-          <span class="mini-chip">加减乘配比</span>
-          <span class="mini-chip">每页列数</span>
-          <span class="mini-chip">行距与字号</span>
-          <span class="mini-chip">保存模板</span>
-        </div>
-        <div class="form-hint" style="margin-top: 12px;">
-          下一步再扩展会很自然：除法、答案页、按知识点分组、班级模板库、导出带答案版本。
         </div>
       </div>
     </div>
   </aside>
-
-  <section class="content">
-    <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-number" id="statPages">0</div>
-        <div class="stat-label">总页数</div>
-        <div class="stat-subtext" id="statPagesText">尚未生成</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="statPerPage">0</div>
-        <div class="stat-label">每页题数</div>
-        <div class="stat-subtext" id="statPerPageText">请先设置题型数量</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="statCapacity">0</div>
-        <div class="stat-label">版式容量</div>
-        <div class="stat-subtext" id="statCapacityText">当前版式可容纳的上限</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="statRules">—</div>
-        <div class="stat-label">规则摘要</div>
-        <div class="stat-subtext" id="statRulesText">整数位 / 小数位 / 结果范围</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title"><span class="card-icon">📋</span> 题目预览</div>
-        <button class="btn btn-outline btn-sm" id="refreshBtn" onclick="refreshCurrentPage()" style="display:none;">🔄 换当前页</button>
-      </div>
-      <div class="card-body" id="previewArea">
-        <div class="empty-state">
-          <div class="icon">📝</div>
-          <h3>还没有题目</h3>
-          <p>左侧设定规则后，点击“生成预览”即可看到当前配置对应的练习题。</p>
-        </div>
-      </div>
-    </div>
-  </section>
 </div>
 
 <script>
@@ -897,6 +999,12 @@ let savedPresets = INITIAL_SAVED_PRESETS;
 
 function $(id) {
   return document.getElementById(id);
+}
+
+function syncWorkspaceLayout() {
+  const header = document.querySelector('.header');
+  const headerHeight = header ? Math.ceil(header.getBoundingClientRect().height) : 92;
+  document.documentElement.style.setProperty('--app-header-height', `${headerHeight}px`);
 }
 
 function getNumber(id, fallback = 0) {
@@ -1003,6 +1111,8 @@ function applyConfig(config, options = {}) {
   $('integerDigitsMax').value = config.rules.integer_digits_max;
   $('decimalDigitsMin').value = config.rules.decimal_digits_min;
   $('decimalDigitsMax').value = config.rules.decimal_digits_max;
+  $('operandMin').value = config.rules.operand_min ?? '';
+  $('operandMax').value = config.rules.operand_max ?? '';
   $('resultMin').value = config.rules.result_min;
   $('resultMax').value = config.rules.result_max;
   $('additionCarryMode').value = config.rules.addition_carry_mode || 'any';
@@ -1042,6 +1152,8 @@ function getSettings() {
     integer_digits_max: getNumber('integerDigitsMax', DEFAULTS.rules.integer_digits_max),
     decimal_digits_min: getNumber('decimalDigitsMin', DEFAULTS.rules.decimal_digits_min),
     decimal_digits_max: getNumber('decimalDigitsMax', DEFAULTS.rules.decimal_digits_max),
+    operand_min: $('operandMin').value,
+    operand_max: $('operandMax').value,
     result_min: $('resultMin').value,
     result_max: $('resultMax').value,
     addition_carry_mode: $('additionCarryMode').value,
@@ -1071,8 +1183,11 @@ function updateLiveStats() {
 
   const integerText = `${settings.integer_digits_min}-${settings.integer_digits_max} 位`;
   const decimalText = `${settings.decimal_digits_min}-${settings.decimal_digits_max} 位`;
+  const operandRangeText = (settings.operand_min || settings.operand_max)
+    ? `${settings.operand_min || '不限'} ~ ${settings.operand_max || '不限'}`
+    : '不限';
   $('statRules').textContent = `${integerText} / ${decimalText}`;
-  $('statRulesText').textContent = `结果 ${settings.result_min || DEFAULTS.rules.result_min} ~ ${settings.result_max || DEFAULTS.rules.result_max}`;
+  $('statRulesText').textContent = `参与数值 ${operandRangeText}；结果 ${settings.result_min || DEFAULTS.rules.result_min} ~ ${settings.result_max || DEFAULTS.rules.result_max}`;
 
   if (totalPerPage > capacityInfo.capacity) {
     $('statCapacityText').textContent = `当前超出容量：最多 ${capacityInfo.capacity} 题`;
@@ -1160,7 +1275,7 @@ function renderPreview() {
       <div class="empty-state">
         <div class="icon">📝</div>
         <h3>还没有题目</h3>
-        <p>左侧设定规则后，点击“生成预览”即可看到当前配置对应的练习题。</p>
+        <p>设置右侧配置后，点击左侧"生成预览"即可看到练习题。</p>
       </div>`;
     return;
   }
@@ -1189,6 +1304,7 @@ function renderPreview() {
       }).join('')}
       <span class="badge badge-slate">整数位 ${escapeHtml(currentSummary.integer_digits_text)}</span>
       <span class="badge badge-slate">小数位 ${escapeHtml(currentSummary.decimal_digits_text)}</span>
+      <span class="badge badge-slate">参与数值 ${escapeHtml(currentSummary.operand_range_text)}</span>
       <span class="badge badge-slate">结果范围 ${escapeHtml(currentSummary.result_range_text)}</span>
       <span class="badge badge-slate">加法进位 ${escapeHtml(currentSummary.addition_carry_text)}</span>
       <span class="badge badge-slate">减法退位 ${escapeHtml(currentSummary.subtraction_borrow_text)}</span>
@@ -1232,17 +1348,40 @@ function switchPage(index) {
   document.querySelectorAll('.problems-page').forEach((page, idx) => page.classList.toggle('active', idx === index));
 }
 
+function applyPreviewPayload(data) {
+  pagesData = data.pages;
+  currentPage = 0;
+  currentConfig = data.config;
+  currentSummary = data.summary;
+  renderPreview();
+  updateLiveStats();
+}
+
+async function fetchPreviewPayload(settings) {
+  return requestJson('/api/preview', settings);
+}
+
+async function requestPdfBlob(settings) {
+  const resp = await fetch('/api/download', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || 'PDF 生成失败');
+  }
+
+  return resp.blob();
+}
+
 async function generatePreview() {
   const settings = getSettings();
   setLoading('previewBtn', true);
   try {
-    const data = await requestJson('/api/preview', settings);
-    pagesData = data.pages;
-    currentPage = 0;
-    currentConfig = data.config;
-    currentSummary = data.summary;
-    renderPreview();
-    updateLiveStats();
+    const data = await fetchPreviewPayload(settings);
+    applyPreviewPayload(data);
     showToast(`成功生成 ${data.summary.total_pages} 页，共 ${data.summary.total_problems} 道题。`);
   } catch (error) {
     showToast(error.message || '生成失败，请重试。', true);
@@ -1251,22 +1390,42 @@ async function generatePreview() {
   }
 }
 
+async function printWorksheet() {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    showToast('浏览器拦截了新窗口，请允许弹窗后重试。', true);
+    return;
+  }
+
+  printWindow.document.write('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>正在打开 PDF…</title><style>body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#334155;background:#f8fafc} .loading{max-width:480px;margin:12vh auto;padding:24px;border-radius:16px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 12px 30px rgba(15,23,42,.08)} h2{margin:0 0 10px;font-size:22px} p{margin:0;color:#64748b;line-height:1.6}</style></head><body><div class="loading"><h2>正在打开 PDF 打印预览…</h2><p>将使用与"下载 PDF"完全一致的版式。打开后可直接使用浏览器的打印功能。</p></div></body></html>');
+  printWindow.document.close();
+
+  const settings = getSettings();
+  setLoading('printBtn', true);
+  try {
+    const previewData = await fetchPreviewPayload(settings);
+    applyPreviewPayload(previewData);
+
+    const blob = await requestPdfBlob(settings);
+    const url = window.URL.createObjectURL(blob);
+    printWindow.location.href = url;
+    printWindow.addEventListener('beforeunload', () => {
+      setTimeout(() => window.URL.revokeObjectURL(url), 60 * 1000);
+    }, { once: true });
+    showToast('已打开 PDF 预览，打印效果将与下载版一致。');
+  } catch (error) {
+    printWindow.close();
+    showToast(error.message || '打印准备失败，请重试。', true);
+  } finally {
+    setLoading('printBtn', false);
+  }
+}
+
 async function downloadPDF() {
   const settings = getSettings();
   setLoading('downloadBtn', true);
   try {
-    const resp = await fetch('/api/download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || '下载失败');
-    }
-
-    const blob = await resp.blob();
+    const blob = await requestPdfBlob(settings);
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -1304,10 +1463,17 @@ async function refreshCurrentPage() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  syncWorkspaceLayout();
+  window.addEventListener('resize', syncWorkspaceLayout);
+
   applyConfig(DEFAULTS);
   rebuildPresetOptions(getPresetOptionValue('built_in', 'default'));
   $('presetSelect').value = getPresetOptionValue('built_in', 'default');
   $('presetSelect').addEventListener('change', (event) => applyPresetByValue(event.target.value));
+  $('integerOnlyMode').addEventListener('change', (event) => {
+    setIntegerOnlyMode(event.target.checked);
+    updateLiveStats();
+  });
 
   document.querySelectorAll('input, select').forEach((element) => {
     element.addEventListener('input', updateLiveStats);
@@ -1318,6 +1484,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   try {
     await refreshPresetCatalog(getPresetOptionValue('built_in', 'default'));
     $('presetSelect').value = getPresetOptionValue('built_in', 'default');
+    applyPresetByValue($('presetSelect').value);
+    syncWorkspaceLayout();
   } catch (error) {
     console.error(error);
   }
